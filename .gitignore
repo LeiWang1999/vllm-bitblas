@@ -184,3 +184,9 @@ _build/
 
 # Benchmark dataset
 *.json
+
+# debug directory 
+debug
+
+# database directory
+.bitblas_database

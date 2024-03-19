@@ -13,6 +13,7 @@ from vllm.model_executor.parallel_utils.utils import (
     divide, split_tensor_along_last_dim)
 from vllm.model_executor.utils import set_weight_attrs
 from vllm.logger import init_logger
+from copy import deepcopy
 
 logger = init_logger(__name__)
 
@@ -24,6 +25,12 @@ def adjust_marlin_shard(param, shard_size, shard_offset):
 
     return shard_size * marlin_tile_size, shard_offset * marlin_tile_size
 
+def adjust_bitblas_shard(param, shard_size, shard_offset):
+    bitblas_tile_size = getattr(param, "bitblas_tile_size", None)
+    if bitblas_tile_size is None:
+        return shard_size, shard_offset
+
+    return shard_size // bitblas_tile_size, shard_offset // bitblas_tile_size
 
 class LinearMethodBase(ABC):
     """Base class for different (maybe quantized) linear methods."""
@@ -111,7 +118,7 @@ class ReplicatedLinear(torch.nn.Module):
         self.params_dtype = params_dtype
         if linear_method is None:
             linear_method = UnquantizedLinearMethod()
-        self.linear_method = linear_method
+        self.linear_method = deepcopy(linear_method)
         self.linear_weights = self.linear_method.create_weights(
             self.input_size, self.output_size, self.input_size,
             self.output_size, self.params_dtype)
@@ -177,7 +184,7 @@ class ColumnParallelLinear(torch.nn.Module):
         self.params_dtype = params_dtype
         if linear_method is None:
             linear_method = UnquantizedLinearMethod()
-        self.linear_method = linear_method
+        self.linear_method = deepcopy(linear_method)
         self.linear_weights = self.linear_method.create_weights(
             self.input_size, self.output_size_per_partition, self.input_size,
             self.output_size, self.params_dtype)
@@ -200,12 +207,12 @@ class ColumnParallelLinear(torch.nn.Module):
         tp_rank = get_tensor_model_parallel_rank()
         output_dim = getattr(param, "output_dim", None)
         param_data = param.data
-        if output_dim is not None:
+        if output_dim is not None:           
             shard_size = param_data.shape[output_dim]
             start_idx = tp_rank * shard_size
             loaded_weight = loaded_weight.narrow(output_dim, start_idx,
                                                  shard_size)
-        assert param_data.shape == loaded_weight.shape
+        assert param_data.shape == loaded_weight.shape, f"{param_data.shape} != {loaded_weight.shape}"
         param_data.copy_(loaded_weight)
 
     def forward(self, input_):
@@ -290,6 +297,9 @@ class MergedColumnParallelLinear(ColumnParallelLinear):
                     shard_size, shard_offset = adjust_marlin_shard(
                         param, shard_size, shard_offset)
 
+                shard_size, shard_offset = adjust_bitblas_shard(
+                    param, shard_size, shard_offset)
+
                 loaded_weight_shard = loaded_weight.narrow(
                     output_dim, shard_offset, shard_size)
                 self.weight_loader(param, loaded_weight_shard, shard_id)
@@ -312,7 +322,8 @@ class MergedColumnParallelLinear(ColumnParallelLinear):
                 # account for the tiling.
                 shard_size, shard_offset = adjust_marlin_shard(
                     param, shard_size, shard_offset)
-
+            shard_size, shard_offset = adjust_bitblas_shard(
+                param, shard_size, shard_offset)
             param_data = param_data.narrow(output_dim, shard_offset,
                                            shard_size)
             start_idx = tp_rank * shard_size
@@ -419,7 +430,9 @@ class QKVParallelLinear(ColumnParallelLinear):
                     # account for the tiling.
                     shard_size, shard_offset = adjust_marlin_shard(
                         param, shard_size, shard_offset)
-
+                shard_size, shard_offset = adjust_bitblas_shard(
+                    param, shard_size, shard_offset
+                )
                 loaded_weight_shard = loaded_weight.narrow(
                     output_dim, shard_offset, shard_size)
                 self.weight_loader(param, loaded_weight_shard, shard_id)
@@ -449,7 +462,9 @@ class QKVParallelLinear(ColumnParallelLinear):
                 # account for the tiling.
                 shard_size, shard_offset = adjust_marlin_shard(
                     param, shard_size, shard_offset)
-
+            shard_size, shard_offset = adjust_bitblas_shard(
+                param, shard_size, shard_offset
+            )
             param_data = param_data.narrow(output_dim, shard_offset,
                                            shard_size)
             if loaded_shard_id == "q":
@@ -466,7 +481,7 @@ class QKVParallelLinear(ColumnParallelLinear):
                     "Loading a weight without `output_dim` attribute in "
                     "QKVParallelLinear, assume the weight is the same "
                     "for all partitions.")
-        assert param_data.shape == loaded_weight.shape
+        assert param_data.shape == loaded_weight.shape, f"{param_data.shape} != {loaded_weight.shape}"
         param_data.copy_(loaded_weight)
 
 
@@ -523,7 +538,7 @@ class RowParallelLinear(torch.nn.Module):
         self.skip_bias_add = skip_bias_add
         if linear_method is None:
             linear_method = UnquantizedLinearMethod()
-        self.linear_method = linear_method
+        self.linear_method = deepcopy(linear_method)
         self.linear_weights = self.linear_method.create_weights(
             self.input_size_per_partition, self.output_size, self.input_size,
             self.output_size, self.params_dtype)

@@ -157,8 +157,8 @@ class ModelConfig:
         self.tokenizer_mode = tokenizer_mode
 
     def _verify_quantization(self) -> None:
-        supported_quantization = ["awq", "gptq", "squeezellm", "marlin"]
-        rocm_not_supported_quantization = ["awq", "marlin"]
+        supported_quantization = ["awq", "gptq", "squeezellm", "marlin", "bitblas"]
+        rocm_not_supported_quantization = ["awq", "marlin", "bitblas"]
         if self.quantization is not None:
             self.quantization = self.quantization.lower()
 
@@ -172,6 +172,10 @@ class ModelConfig:
                     and "is_marlin_format" in hf_quant_config
                     and hf_quant_config["is_marlin_format"]):
                 hf_quant_method = "marlin"
+            if (hf_quant_method == "gptq"
+                    and "is_bitblas_format" in hf_quant_config
+                    and hf_quant_config["is_bitblas_format"]):
+                hf_quant_method = "bitblas"
             if self.quantization is None:
                 self.quantization = hf_quant_method
             elif self.quantization != hf_quant_method:
@@ -191,7 +195,7 @@ class ModelConfig:
                 raise ValueError(
                     f"{self.quantization} quantization is currently not "
                     f"supported in ROCm.")
-            if self.quantization != "marlin":
+            if self.quantization != "marlin" or self.quantization != "bitblas":
                 logger.warning(
                     f"{self.quantization} quantization is not fully "
                     "optimized yet. The speed can be slower than "
