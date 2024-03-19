@@ -101,7 +101,7 @@ class BitBLASLinearMethod(LinearMethodBase):
         quant_config (BitBLASConfig): Configuration for BitBLAS quantization.
     """
 
-    OPT_FEATURES = [1, 16, 32]
+    OPT_FEATURES = [1, 16, 32, 64, 128, 256, 512]
     BITBLAS_DTYPES = {
         torch.float32: "float32",
         torch.float16: "float16",
