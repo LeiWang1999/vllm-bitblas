@@ -2,6 +2,9 @@ from typing import Any, Dict, List, Optional
 
 import torch
 from torch.nn.parameter import Parameter
+import ctypes
+from functools import reduce
+import operator
 
 from vllm._C import ops
 from vllm.model_executor.layers.linear import LinearMethodBase, set_weight_attrs
@@ -33,13 +36,14 @@ class BitBLASConfig(QuantizationConfig):
     TORCH_DTYPE = torch.float16
     STORAGE_DTYPE = "int8"  # assume int8 storage
     TORCH_STORAGE_DTYPE = getattr(torch, STORAGE_DTYPE)
+    ZEROS_TYPE = "quantized"  # "original" or "rescale" or "quantized"
 
     def __init__(
         self,
         nbits: int = 4,
         group_size: int = -1,
         fast_type_conversion: bool = True,
-        weight_propagation: bool = True,
+        weight_propagation: bool = False,
     ) -> None:
         # Group size for the quantization.
         self.group_size = group_size
@@ -57,6 +61,9 @@ class BitBLASConfig(QuantizationConfig):
         # whether weight propagation is applied
         self.fast_type_conversion = fast_type_conversion
         self.weight_propagation = weight_propagation
+
+        # Zeros type for the quantized weights.
+        self.zeros_type = self.ZEROS_TYPE
 
     def __repr__(self) -> str:
         return f"BitBLASConfig(group_size={self.group_size}"
@@ -82,7 +89,7 @@ class BitBLASConfig(QuantizationConfig):
     def from_config(cls, config: Dict[str, Any]) -> "BitBLASConfig":
         nbits = cls.get_from_keys(config, ["bits"])
         group_size = cls.get_from_keys(config, ["group_size"])
-        return cls(nbits, group_size, True, True)
+        return cls(nbits, group_size)
 
     def get_linear_method(self) -> "BitBLASLinearMethod":
         return BitBLASLinearMethod(self)
@@ -221,14 +228,32 @@ class BitBLASLinearMethod(LinearMethodBase):
             ),
             requires_grad=False,
         )
-        zeros = Parameter(
-            torch.empty(output_size_per_partition, input_groups, dtype=params_dtype),
-            requires_grad=False,
-        )
-        # Set attributes to indicate how scales and zeros are applied.
-        common_attrs = {"input_dim": None if input_groups == 1 else 1, "output_dim": 0}
-        set_weight_attrs(scales, common_attrs)
-        set_weight_attrs(zeros, common_attrs)
+        set_weight_attrs(scales, {"input_dim": None if input_groups == 1 else 1, "output_dim": 0})
+        if self.quant_config.zeros_type == "quantized":
+            zeros = Parameter(
+                torch.empty(
+                    input_groups,
+                    output_size_per_partition // self.quant_config.pack_factor,
+                    dtype=self.quant_config.storage_torch_dtype,
+                ),
+                requires_grad=False,
+            )
+            # Set attributes to indicate how scales and zeros are applied.
+
+            set_weight_attrs(
+            zeros, {
+                "input_dim": 0,
+                "output_dim": 1,
+                "packed_dim": 1,
+                "pack_factor": self.quant_config.pack_factor,
+            })
+        else:
+            zeros = Parameter(
+                torch.empty(output_size_per_partition, input_groups, dtype=params_dtype),
+                requires_grad=False,
+            )
+            # Set attributes to indicate how scales and zeros are applied.
+            set_weight_attrs(scales, {"input_dim": None if input_groups == 1 else 1, "output_dim": 0})
 
         return {"qweight": qweight, "scales": scales, "zeros": zeros}
 
@@ -264,7 +289,7 @@ class BitBLASLinearMethod(LinearMethodBase):
             propagate_a=False,
             propagate_b=propagate_b,
             layout=layout,
-            zeros_type="original",
+            zeros_type=self.quant_config.zeros_type,
         )
         self.bitblas_matmul = self._get_or_create_bitblas_operator(
             matmul_config, enable_tuning
@@ -309,19 +334,39 @@ class BitBLASLinearMethod(LinearMethodBase):
             The output tensor after applying the quantized weights (and bias if provided).
         """
         # Reshape the input and prepare the output tensor.
-        x_2d = x.view(-1, x.shape[-1])
-        output_2d = torch.empty(
-            x_2d.shape[:-1] + (weights["scales"].shape[0],),
-            dtype=x_2d.dtype,
-            device=x_2d.device,
-        )
-        # Apply the BitBLAS matrix multiplication.
-        self.bitblas_matmul(
-            x_2d, weights["qweight"], weights["scales"], weights["zeros"], output_2d
-        )
+        # x_2d = x.view(-1, x.shape[-1])
+        # output_2d = torch.empty(
+        #     x_2d.shape[:-1] + (weights["scales"].shape[0],),
+        #     dtype=x_2d.dtype,
+        #     device=x_2d.device,
+        # )
+        # # Apply the BitBLAS matrix multiplication.
+        # self.bitblas_matmul(
+        #     x_2d, weights["qweight"], weights["scales"], weights["zeros"], output_2d
+        # )
 
-        # Reshape the output and apply bias if provided.
-        output = output_2d.view(x.shape[:-1] + (output_2d.shape[1],))
+        # # Reshape the output and apply bias if provided.
+        # output = output_2d.view(x.shape[:-1] + (output_2d.shape[1],))
+        # if bias is not None:
+        #     output += bias
+        
+        if x.dtype != torch.float16:
+            x = x.half()
+        output = torch.empty(
+            x.shape[:-1] + (weights["scales"].shape[0],), dtype=x.dtype, device=x.device
+        )
+        x_void = ctypes.c_void_p(x.data_ptr())
+        qweight_void = ctypes.c_void_p(weights["qweight"].data_ptr())
+        scales_void = ctypes.c_void_p(weights["scales"].data_ptr())
+        zeros_void = ctypes.c_void_p(weights["zeros"].data_ptr())
+        output_void = ctypes.c_void_p(output.data_ptr())
+        
+        # m is the product of the last n - 1 dimensions of A
+        m = ctypes.c_int32(reduce(operator.mul, x.shape[:-1], 1))
+        self.bitblas_matmul.lib.call(
+            x_void , qweight_void, scales_void, zeros_void, output_void, m
+        )
         if bias is not None:
             output += bias
+        
         return output

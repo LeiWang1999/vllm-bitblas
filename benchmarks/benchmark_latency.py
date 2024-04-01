@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from vllm import LLM, SamplingParams
 
-
+np.random.seed(0)
 def main(args: argparse.Namespace):
     print(args)
 
@@ -55,7 +55,7 @@ def main(args: argparse.Namespace):
                 llm.generate(prompt_token_ids=dummy_prompt_token_ids,
                              sampling_params=sampling_params,
                              use_tqdm=False)
-            print(p.key_averages())
+            print(p.key_averages().table(sort_by="cuda_time_total", row_limit=10))
         else:
             start_time = time.perf_counter()
             llm.generate(prompt_token_ids=dummy_prompt_token_ids,
@@ -89,7 +89,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Benchmark the latency of processing a single batch of '
         'requests till completion.')
-    parser.add_argument('--model', type=str, default='facebook/opt-125m')
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="/home/t-leiwang/mlc_workspace/AutoGPTQ/dist/Llama-2-70B-Chat-GPTQ",
+    )
     parser.add_argument('--tokenizer', type=str, default=None)
     parser.add_argument('--quantization',
                         '-q',
@@ -98,7 +102,7 @@ if __name__ == '__main__':
     parser.add_argument('--tensor-parallel-size', '-tp', type=int, default=1)
     parser.add_argument('--input-len', type=int, default=32)
     parser.add_argument('--output-len', type=int, default=128)
-    parser.add_argument('--batch-size', type=int, default=8)
+    parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--n',
                         type=int,
                         default=1,
