@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
+from copy import deepcopy
 
 import torch
 import torch.nn.functional as F
@@ -133,7 +134,7 @@ class ReplicatedLinear(torch.nn.Module):
         self.params_dtype = params_dtype
         if linear_method is None:
             linear_method = UnquantizedLinearMethod()
-        self.linear_method = deepcopy(linear_method)
+        self.linear_method = linear_method
         self.linear_weights = self.linear_method.create_weights(
             self.input_size,
             self.output_size,
@@ -204,7 +205,7 @@ class ColumnParallelLinear(torch.nn.Module):
         self.params_dtype = params_dtype
         if linear_method is None:
             linear_method = UnquantizedLinearMethod()
-        self.linear_method = deepcopy(linear_method)
+        self.linear_method = linear_method
         self.linear_weights = self.linear_method.create_weights(
             self.input_size,
             self.output_size_per_partition,
@@ -598,7 +599,7 @@ class RowParallelLinear(torch.nn.Module):
         self.skip_bias_add = skip_bias_add
         if linear_method is None:
             linear_method = UnquantizedLinearMethod()
-        self.linear_method = deepcopy(linear_method)
+        self.linear_method = linear_method
         self.linear_weights = self.linear_method.create_weights(
             self.input_size_per_partition,
             self.output_size,
