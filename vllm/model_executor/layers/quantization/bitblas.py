@@ -22,6 +22,7 @@ from bitblas.ops.matmul_dequantize import (
     MatmulWeightOnlyDequantizeConfig,
     MatmulWeightOnlyDequantize,
 )
+import bitblas
 from bitblas.utils import get_target_from_env
 from bitblas.cache import global_operator_cache
 
@@ -234,6 +235,7 @@ class BitBLASLinearMethod(LinearMethodBase):
                 torch.empty(
                     input_groups,
                     output_size_per_partition // self.quant_config.pack_factor,
+                    device="cuda",
                     dtype=self.quant_config.storage_torch_dtype,
                 ),
                 requires_grad=False,
@@ -241,15 +243,19 @@ class BitBLASLinearMethod(LinearMethodBase):
             # Set attributes to indicate how scales and zeros are applied.
 
             set_weight_attrs(
-            zeros, {
-                "input_dim": 0,
-                "output_dim": 1,
-                "packed_dim": 1,
-                "pack_factor": self.quant_config.pack_factor,
-            })
+                zeros,
+                {
+                    "input_dim": None if input_groups == 1 else 0,
+                    "output_dim": 1,
+                    "packed_dim": 1,
+                    "pack_factor": self.quant_config.pack_factor,
+                },
+            )
         else:
             zeros = Parameter(
-                torch.empty(output_size_per_partition, input_groups, dtype=params_dtype),
+                torch.empty(output_size_per_partition, input_groups,
+                            device="cuda",
+                            dtype=params_dtype),
                 requires_grad=False,
             )
             # Set attributes to indicate how scales and zeros are applied.
@@ -349,7 +355,7 @@ class BitBLASLinearMethod(LinearMethodBase):
         # output = output_2d.view(x.shape[:-1] + (output_2d.shape[1],))
         # if bias is not None:
         #     output += bias
-        
+
         if x.dtype != torch.float16:
             x = x.half()
         output = torch.empty(
@@ -360,7 +366,7 @@ class BitBLASLinearMethod(LinearMethodBase):
         scales_void = ctypes.c_void_p(weights["scales"].data_ptr())
         zeros_void = ctypes.c_void_p(weights["zeros"].data_ptr())
         output_void = ctypes.c_void_p(output.data_ptr())
-        
+
         # m is the product of the last n - 1 dimensions of A
         m = ctypes.c_int32(reduce(operator.mul, x.shape[:-1], 1))
         self.bitblas_matmul.lib.call(
@@ -368,5 +374,7 @@ class BitBLASLinearMethod(LinearMethodBase):
         )
         if bias is not None:
             output += bias
-        
+
         return output
+
+__all__ = ["BitBLASConfig"]

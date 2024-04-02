@@ -77,7 +77,6 @@ def main(args: argparse.Namespace):
             ) / "vllm_benchmark_result" / f"latency_result_{time.time()}"
         print(f"Profiling (results will be saved to '{profile_dir}')...")
         run_to_completion(profile_dir=profile_dir)
-        return
 
     # Benchmark.
     latencies = []
