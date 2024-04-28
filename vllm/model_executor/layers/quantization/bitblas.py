@@ -23,10 +23,10 @@ from bitblas.ops.matmul_dequantize import (
     MatmulWeightOnlyDequantize,
 )
 import bitblas
-from bitblas.utils import get_target_from_env
+from bitblas.utils import auto_detect_nvidia_target
 from bitblas.cache import global_operator_cache
 
-BITBLAS_TARGET = get_target_from_env()
+BITBLAS_TARGET = auto_detect_nvidia_target()
 BITBLAS_DATABASE_PATH = ".bitblas_database"
 global_operator_cache.load_from_database(BITBLAS_DATABASE_PATH, BITBLAS_TARGET)
 
