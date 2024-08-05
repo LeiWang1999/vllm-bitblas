@@ -16,6 +16,7 @@ from vllm.model_executor.layers.quantization.deepspeedfp import (
     DeepSpeedFPConfig)
 from vllm.model_executor.layers.quantization.fbgemm_fp8 import FBGEMMFp8Config
 from vllm.model_executor.layers.quantization.fp8 import Fp8Config
+from vllm.model_executor.layers.quantization.gguf import GGUFConfig
 from vllm.model_executor.layers.quantization.gptq import GPTQConfig
 from vllm.model_executor.layers.quantization.gptq_bitblas import (
     GPTQBitBLASConfig)
@@ -38,6 +39,7 @@ QUANTIZATION_METHODS: Dict[str, Type[QuantizationConfig]] = {
     "bitnet_bitblas": BITNETBitBLASConfig,
     "marlin": MarlinConfig,
     "bitblas": BitBLASConfig,
+    "gguf": GGUFConfig,
     "gptq_marlin_24": GPTQMarlin24Config,
     "gptq_marlin": GPTQMarlinConfig,
     "gptq_bitblas": GPTQBitBLASConfig,

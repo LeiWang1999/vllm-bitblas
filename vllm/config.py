@@ -630,6 +630,7 @@ class LoadFormat(str, enum.Enum):
     DUMMY = "dummy"
     TENSORIZER = "tensorizer"
     SHARDED_STATE = "sharded_state"
+    GGUF = "gguf"
     BITSANDBYTES = "bitsandbytes"
 
 
