@@ -189,7 +189,4 @@ _build/
 hip_compat.h
 
 # Benchmark dataset
-*.json
-
-# Debug files
-debug/
+benchmarks/*.json
