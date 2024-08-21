@@ -395,22 +395,6 @@ class BitBLASLinearMethod(LinearMethodBase):
             logger.info(_message)
         return bitblas_matmul
 
-    @torch.compile
-    def activation_quant(self, x):
-        x = x.float()
-        Qn = self.Qn
-        Qp = self.Qp
-        s = Qp / x.abs().max(dim=-1, keepdim=True).values.clamp(min=1e-5)
-        result = (x * s).round().clamp(Qn, Qp).type(torch.int8)
-        return result, s
-
-    @torch.compile(dynamic=True)
-    def post_quant_process(self, input, si, sw):
-        out = input / si
-        out.div_(sw)
-        out = out.half()
-        return out
-
     def apply_gptq(
         self,
         layer: torch.nn.Module,

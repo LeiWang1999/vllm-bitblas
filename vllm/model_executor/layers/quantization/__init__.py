@@ -6,8 +6,6 @@ from vllm.model_executor.layers.quantization.awq_marlin import AWQMarlinConfig
 from vllm.model_executor.layers.quantization.base_config import (
     QuantizationConfig)
 from vllm.model_executor.layers.quantization.bitblas import BitBLASConfig
-from vllm.model_executor.layers.quantization.bitnet_bitblas import (
-    BITNETBitBLASConfig)
 from vllm.model_executor.layers.quantization.bitsandbytes import (
     BitsAndBytesConfig)
 from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors import (  # noqa: E501
@@ -46,7 +44,6 @@ QUANTIZATION_METHODS: Dict[str, Type[QuantizationConfig]] = {
     "gptq_marlin_24": GPTQMarlin24Config,
     "gptq_marlin": GPTQMarlinConfig,
     "gptq_bitblas": GPTQBitBLASConfig,
-    "bitnet_bitblas": BITNETBitBLASConfig,
     "gguf": GGUFConfig,
     "awq_marlin": AWQMarlinConfig,
     "gptq": GPTQConfig,
