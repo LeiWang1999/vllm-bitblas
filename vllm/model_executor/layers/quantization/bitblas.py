@@ -396,8 +396,9 @@ class BitBLASLinearMethod(LinearMethodBase):
                 global_operator_cache.add(config, bitblas_matmul)
                 global_operator_cache.save_into_database(
                     BITBLAS_DATABASE_PATH, BITBLAS_TARGET)
-                logger.info("BitBLAS Tuning done, appended operator to "
-                            "global_operator_cache.")
+                TUNING_MESSAGE = (
+                    f"BitBLAS Operator {config} tuned and saved to database.")
+                logger.info(TUNING_MESSAGE)
             else:
                 _message = f"BitBLAS Operator {config} created."
                 logger.info(_message)
