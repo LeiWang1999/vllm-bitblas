@@ -274,7 +274,6 @@ class ModelConfig:
             "awq_marlin",
             "gptq_bitblas",
             "bitblas",
-            "bitnet_bitblas",
             "fbgemm_fp8",
             "compressed_tensors",
             "compressed-tensors",
@@ -419,13 +418,6 @@ class ModelConfig:
             # FlashAttention supports only head_size 32, 64, 128, 256,
             # we need to pad head_size 192 to 256
             return 256
-        if (hasattr(self.hf_text_config, "architectures")
-                and "BitnetForCausalLM" in self.hf_text_config.architectures):
-            # FlashAttention does not support head_size 100
-            # TODO: implement for head_size 100
-            return self.find_flash_attn_supported_head_dims(
-                (self.hf_text_config.hidden_size //
-                 self.hf_text_config.num_attention_heads))
 
         if hasattr(self.hf_text_config, "head_dim"):
             return self.hf_text_config.head_dim
