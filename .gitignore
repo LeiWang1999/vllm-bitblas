@@ -193,3 +193,6 @@ hip_compat.h
 
 # Benchmark dataset
 benchmarks/*.json
+
+# Debug files
+debug/

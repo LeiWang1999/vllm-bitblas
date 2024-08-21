@@ -37,7 +37,7 @@ Read gptq format checkpoint.
     from vllm import LLM
     import torch
     # unsloth/tinyllama-bnb-4bit is a pre-quantized checkpoint.
-    model_id = "hxbgsyxh/opt-125m-4bit-128g"
+    model_id = "hxbgsyxh/llama-13b-4bit-g-1"
     llm = LLM(model=model_id, dtype=torch.float16, trust_remote_code=True, \
     quantization="bitblas", max_model_len=1024)
 
