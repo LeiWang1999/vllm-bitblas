@@ -14,7 +14,7 @@ Below are the steps to utilize BitBLAS with vLLM.
 
 vLLM reads the model's config file and supports both in-flight quantization and pre-quantized checkpoint.
 
-You can find bitsandbytes quantized models on https://huggingface.co/models?other=bitblas or https://huggingface.co/models?other=bitnet or https://huggingface.co/models?other=gptq.
+You can find pre-quantized models on https://huggingface.co/models?other=bitblas or https://huggingface.co/models?other=bitnet or https://huggingface.co/models?other=gptq.
 
 And usually, these repositories have a quantize_config.json file that includes a quantization_config section.
 
