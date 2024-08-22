@@ -4,7 +4,7 @@ BitBLAS
 ==================
 
 vLLM now supports `BitBLAS <https://github.com/microsoft/BitBLAS>`_ for more efficient and flexible model inference.
-Compared to other quantizate frameworks, BitBLAS provides more precision combinations.
+Compared to other quantization frameworks, BitBLAS provides more precision combinations.
 
 Below are the steps to utilize BitsAndBytes with vLLM.
 
