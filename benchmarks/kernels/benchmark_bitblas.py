@@ -3,9 +3,9 @@
 
 try:
     import bitblas
-    if bitblas.__version__ < "0.0.1.dev14":
+    if bitblas.__version__ < "0.0.1.dev15":
         raise ImportError("bitblas version is wrong. Please "
-                          "install bitblas>=0.0.1.dev14")
+                          "install bitblas>=0.0.1.dev15")
 except ImportError as e:
     bitblas_import_exception = e
     raise ValueError("Trying to use the bitblas backend, but could not import"

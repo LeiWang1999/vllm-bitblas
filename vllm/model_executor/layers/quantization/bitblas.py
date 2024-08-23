@@ -32,9 +32,9 @@ class BitBLASConfig(QuantizationConfig):
                  quant_method: Optional[str]) -> None:
         try:
             import bitblas
-            if bitblas.__version__ < "0.0.1.dev14":
+            if bitblas.__version__ < "0.0.1.dev15":
                 raise ImportError("bitblas version is wrong. Please "
-                                  "install bitblas>=0.0.1.dev14")
+                                  "install bitblas>=0.0.1.dev15")
         except ImportError as e:
             bitblas_import_exception = e
             raise ValueError(
@@ -90,7 +90,7 @@ class BitBLASConfig(QuantizationConfig):
 
     @classmethod
     def get_supported_act_dtypes(cls) -> List[torch.dtype]:
-        return [torch.half]
+        return [torch.half, torch.bfloat16]
 
     @classmethod
     # Need to figure it out
@@ -160,6 +160,7 @@ class BitBLASLinearMethod(LinearMethodBase):
     BITBLAS_DTYPES = {
         torch.float32: "float32",
         torch.float16: "float16",
+        torch.bfloat16: "bfloat16",
         torch.half: "float16",
         torch.int8: "int8",
     }

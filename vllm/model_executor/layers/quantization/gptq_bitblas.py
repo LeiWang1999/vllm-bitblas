@@ -71,9 +71,9 @@ class GPTQBitBLASConfig(QuantizationConfig):
 
         try:
             import bitblas
-            if bitblas.__version__ < "0.0.1.dev14":
+            if bitblas.__version__ < "0.0.1.dev15":
                 raise ImportError("bitblas version is wrong. Please "
-                                  "install bitblas>=0.0.1.dev14")
+                                  "install bitblas>=0.0.1.dev15")
         except ImportError as e:
             bitblas_import_exception = e
             raise ValueError(
@@ -214,6 +214,7 @@ class GPTQBitBLASLinearMethod(LinearMethodBase):
     BITBLAS_DTYPES = {
         torch.float32: "float32",
         torch.float16: "float16",
+        torch.bfloat16: "bfloat16",
         torch.half: "float16",
         torch.int8: "int8",
     }

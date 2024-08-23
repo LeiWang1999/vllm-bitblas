@@ -10,9 +10,9 @@ Below are the steps to utilize BitBLAS with vLLM.
 
 .. code-block:: console
 
-    $ pip install bitblas>=0.0.1.dev14
+    $ pip install bitblas>=0.0.1.dev15
 
-vLLM reads the model's config file and supports both in-flight quantization and pre-quantized checkpoint.
+vLLM reads the model's config file and supports pre-quantized checkpoint.
 
 You can find pre-quantized models on https://huggingface.co/models?other=bitblas or https://huggingface.co/models?other=bitnet or https://huggingface.co/models?other=gptq.
 
