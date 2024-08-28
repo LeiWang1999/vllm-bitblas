@@ -273,7 +273,7 @@ class ModelConfig:
 
     def _verify_quantization(self) -> None:
         supported_quantization = [*QUANTIZATION_METHODS]
-        rocm_supported_quantization = ["gptq", "squeezellm", "fp8"]
+        rocm_supported_quantization = ["awq", "gptq", "squeezellm", "fp8"]
         optimized_quantization_methods = [
             "fp8",
             "marlin",
@@ -335,9 +335,13 @@ class ModelConfig:
                 logger.warning(
                     "%s quantization is not fully "
                     "optimized yet. The speed can be slower than "
-                    "non-quantized models.",
-                    self.quantization,
-                )
+                    "non-quantized models.", self.quantization)
+            if (self.quantization == "awq" and is_hip()
+                    and not envs.VLLM_USE_TRITON_AWQ):
+                logger.warning(
+                    "Using AWQ quantization with ROCm, but VLLM_USE_TRITON_AWQ"
+                    " is not set, enabling VLLM_USE_TRITON_AWQ.")
+                envs.VLLM_USE_TRITON_AWQ = True
 
     def _verify_cuda_graph(self) -> None:
         if self.max_seq_len_to_capture is None:
