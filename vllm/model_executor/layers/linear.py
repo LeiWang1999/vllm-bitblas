@@ -36,19 +36,9 @@ def adjust_marlin_shard(param, shard_size, shard_offset):
     return shard_size * marlin_tile_size, shard_offset * marlin_tile_size
 
 
-def adjust_bitblas_shard(param, shard_size, shard_offset):
-    bitblas_tile_size = getattr(param, "bitblas_tile_size", None)
-    weight_propagation = getattr(param, "weight_propagation", None)
-    if weight_propagation and bitblas_tile_size is not None:
-        return (shard_size // bitblas_tile_size,
-                shard_offset // bitblas_tile_size)
-
-    return shard_size, shard_offset
-
-
-def adjust_bitsandbytes_shard(param: Parameter,
-                              qkv_offsets: Dict[str, Tuple[int, int]],
-                              loaded_shard_id: str) -> Tuple[int, int]:
+def adjust_bitsandbytes_4bit_shard(param: Parameter,
+                                   qkv_offsets: Dict[str, Tuple[int, int]],
+                                   loaded_shard_id: str) -> Tuple[int, int]:
     """Adjust the quantization offsets and sizes for BitsAndBytes sharding."""
 
     total, _ = qkv_offsets["total"]
@@ -521,10 +511,10 @@ class MergedColumnParallelLinear(ColumnParallelLinear):
                 # Special case for Marlin.
                 shard_size, shard_offset = adjust_marlin_shard(
                     param, shard_size, shard_offset)
-            shard_size, shard_offset = adjust_bitblas_shard(
-                param, shard_size, shard_offset)
-            use_bitsandbytes = getattr(param, "use_bitsandbytes", False)
-            if use_bitsandbytes:
+
+            use_bitsandbytes_4bit = getattr(param, "use_bitsandbytes_4bit",
+                                            False)
+            if use_bitsandbytes_4bit:
                 shard_size = loaded_weight.shape[output_dim]
                 shard_offset = loaded_weight.shape[output_dim] * \
                     loaded_shard_id
@@ -876,10 +866,10 @@ class QKVParallelLinear(ColumnParallelLinear):
                 # Special case for Marlin.
                 shard_size, shard_offset = adjust_marlin_shard(
                     param, shard_size, shard_offset)
-            shard_size, shard_offset = adjust_bitblas_shard(
-                param, shard_size, shard_offset)
-            use_bitsandbytes = getattr(param, "use_bitsandbytes", False)
-            if use_bitsandbytes:
+
+            use_bitsandbytes_4bit = getattr(param, "use_bitsandbytes_4bit",
+                                            False)
+            if use_bitsandbytes_4bit:
                 orig_qkv_offsets = {
                     "q": (0, self.num_heads * self.head_size),
                     "k": (self.num_heads * self.head_size,
@@ -891,7 +881,7 @@ class QKVParallelLinear(ColumnParallelLinear):
                     ((self.num_heads + 2 * self.num_kv_heads) * self.head_size,
                      0)
                 }
-                shard_size, shard_offset = adjust_bitsandbytes_shard(
+                shard_size, shard_offset = adjust_bitsandbytes_4bit_shard(
                     param, orig_qkv_offsets, loaded_shard_id)
 
             if is_gguf_weight:
