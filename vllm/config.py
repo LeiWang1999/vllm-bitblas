@@ -283,7 +283,7 @@ class ModelConfig:
 
     def _verify_quantization(self) -> None:
         supported_quantization = [*QUANTIZATION_METHODS]
-        rocm_supported_quantization = ["awq", "gptq", "squeezellm", "fp8"]
+        rocm_supported_quantization = ["awq", "gptq", "fp8"]
         optimized_quantization_methods = [
             "fp8",
             "marlin",
@@ -1580,11 +1580,9 @@ class LoRAConfig:
                 "awq",
                 "gptq",
         ]:
-            # TODO support marlin and squeezellm
-            logger.warning(
-                "%s quantization is not tested with LoRA yet.",
-                model_config.quantization,
-            )
+            # TODO support marlin
+            logger.warning("%s quantization is not tested with LoRA yet.",
+                           model_config.quantization)
 
     def verify_with_scheduler_config(self, scheduler_config: SchedulerConfig):
         if scheduler_config.chunked_prefill_enabled:
