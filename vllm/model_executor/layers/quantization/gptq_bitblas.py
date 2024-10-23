@@ -178,10 +178,10 @@ class GPTQBitBLASConfig(QuantizationConfig):
     @classmethod
     def is_bitblas_compatible(cls, quant_config: Dict[str, Any]):
         # Extract data from quant config.
-        num_bits = quant_config.get("bits", None)
-        group_size = quant_config.get("group_size", None)
-        sym = quant_config.get("sym", None)
-        desc_act = quant_config.get("desc_act", None)
+        num_bits = quant_config.get("bits")
+        group_size = quant_config.get("group_size")
+        sym = quant_config.get("sym")
+        desc_act = quant_config.get("desc_act")
 
         # If we cannot find the info needed in the config, cannot convert.
         if (num_bits is None or group_size is None or sym is None
