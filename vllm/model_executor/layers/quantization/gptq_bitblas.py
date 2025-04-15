@@ -36,6 +36,8 @@ class GPTQBitBLASConfig(QuantizationConfig):
     TYPE_MAP = {
         (4, True): scalar_types.uint4b8,
         (8, True): scalar_types.uint8b128,
+        (4, False): scalar_types.uint4b8,
+        (8, False): scalar_types.uint8b128,
     }
 
     TORCH_DTYPE = torch.float16
